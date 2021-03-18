@@ -31,7 +31,8 @@ from folium.plugins import HeatMap
 import uuid
 from IPython.display import display_javascript, display_html, display
 import collections
-
+import streamlit as st
+from streamlit_folium import folium_static
 
 # ## Creating GeoJSON for Saudi Arabia
 # 
@@ -49,13 +50,15 @@ import collections
 
 # In[2]:
 
+st.title('Opening A Business in Khobar/Dammam - Location Recommendations')
 
-with open(r"/home/mohammed/Desktop/Musaddiq/Coursera_Capstone/json/cities.json", 'r', encoding='utf8', errors='ignore') as file:
+with open(r"json/cities.json", 'r', encoding='utf8', errors='ignore') as file:
     cities = json.load(file)
     
-with open(r"/home/mohammed/Desktop/Musaddiq/Coursera_Capstone/json/districts.json", 'r', encoding='utf8', errors='ignore') as file:
+with open(r"json/districts.json", 'r', encoding='utf8', errors='ignore') as file:
     districts = json.load(file)
 
+#st.write("Improted CSVs for boundary data.")
 
 # Let's take a look at how the JSON is structured. 
 # 
@@ -252,14 +255,15 @@ folium.GeoJson(khobar_geojson).add_to(khobar_map)
 #Add title to Map
 loc = "Al Khobar"
 
-title_html = '''
-             <h3 align="center" style="font-size:16px"><b>{}</b></h3>
-             '''.format(loc)   
+title_html = '''<h3 align="center" style="font-size:16px"><b>{}</b></h3>'''.format(loc)   
 
 khobar_map.get_root().html.add_child(folium.Element(title_html))
 
+#"TODO: Add District Labels"
+
 # display map
-#khobar_map
+#"Khobar Districts"
+#folium_static(khobar_map)
 
 
 # In[52]:
@@ -279,8 +283,11 @@ title_html = '''
 
 dammam_map.get_root().html.add_child(folium.Element(title_html))
 
+#"TODO: Add District Labels"
+
 # display map
-#dammam_map
+#"Dammam Districts"
+#folium_static(dammam_map)
 
 
 # ## Using Foursquare API to retrieve popular venues in each district 
@@ -293,18 +300,20 @@ dammam_map.get_root().html.add_child(folium.Element(title_html))
 
 
 #using python-dotenv to protect Foursqaure credentials
-get_ipython().run_line_magic('load_ext', 'dotenv')
-get_ipython().run_line_magic('dotenv', '')
-import os
+#get_ipython().run_line_magic('load_ext', 'dotenv')
+#get_ipython().run_line_magic('dotenv', '')
+#import os
 
-CLIENT_ID = os.getenv("CLIENT_ID") # your Foursquare ID
-CLIENT_SECRET = os.getenv("CLIENT_SECRET") # your Foursquare Secret
+#CLIENT_ID = os.getenv("CLIENT_ID") # your Foursquare ID
+#CLIENT_SECRET = os.getenv("CLIENT_SECRET") # your Foursquare Secret
+CLIENT_ID = "FTYQ3NXJY3OWGWAVEBSUZJQZMDQI5PNORHKXL5ZHO3UMUC2T"
+CLIENT_SECRET = "QYB1ASVT3RVFTBMTCGGGXQEGN332C2ENSJDF10SH2DBBIOSS"
 VERSION = '20180605' # Foursquare API version
 LIMIT = 100 # A default Foursquare API limit value
 
-print('Your credentials:')
-print('CLIENT_ID SIZE: ' + str(len(CLIENT_ID)))
-print('CLIENT_SECRET SIZE: ' + str(len(CLIENT_SECRET)))
+#print('Your credentials:')
+#print('CLIENT_ID SIZE: ' + str(len(CLIENT_ID)))
+#print('CLIENT_SECRET SIZE: ' + str(len(CLIENT_SECRET)))
 
 
 # ### Function to get nearby popular venues
@@ -373,61 +382,100 @@ def getNearbyVenues(
 
 # In[18]:
 
+if st.sidebar.checkbox("Get latest data? (takes some time)"):
 
-khobar_venues = getNearbyVenues(names=khobar['name_en'],
-                                   latitudes=khobar['latitude'],
-                                   longitudes=khobar['longitude']
-                                  )
+	st.write("Please hold, getting latest data...")
 
-khobar_venues
+	khobar_venues = getNearbyVenues(names=khobar['name_en'],
+        	                           latitudes=khobar['latitude'],
+                	                   longitudes=khobar['longitude']
+                        	          )
 
-
-# In[19]:
-
-
-dammam_venues = getNearbyVenues(names=dammam['name_en'],
-                                   latitudes=dammam['latitude'],
-                                   longitudes=dammam['longitude']
-                                  )
-
-dammam_venues
+	khobar_venues.to_csv("cached_data/khobar_venues.csv")
 
 
-# ### Unique Venue Categories
-# 
-# Let's merge and list the unique categories gathered from both the citites.
-
-# In[20]:
+	# In[19]:
 
 
-khobar_unique_cat = khobar_venues['Venue Category'].unique()
+	dammam_venues = getNearbyVenues(names=dammam['name_en'],
+        	                           latitudes=dammam['latitude'],
+                	                   longitudes=dammam['longitude']
+                        	          )
 
-print('There are {} unique categories in Al-Khobar.'.format(len(khobar_unique_cat)))
+	dammam_venues.to_csv("cached_data/dammam_venues.csv")
 
-khobar_unique_cat
+	"Got data! Thank you for waiting :)"
 
+	# ### Unique Venue Categories
+	# 
+	# Let's merge and list the unique categories gathered from both the citites.
 
-# In[21]:
-
-
-dammam_unique_cat = dammam_venues['Venue Category'].unique()
-
-print('There are {} unique categories in Al-dammam.'.format(len(dammam_unique_cat)))
-
-dammam_unique_cat
-
-
-# In[22]:
+	# In[20]:
 
 
-unique_venue_categories = khobar_unique_cat.tolist() + dammam_unique_cat.tolist()
+	khobar_unique_cat = khobar_venues['Venue Category'].unique()
 
-unique_venue_categories = np.unique(unique_venue_categories)
+	with open('cached_data/khobar_unique_cat.txt', 'w') as f:
+	    for item in khobar_unique_cat:
+        	f.write("%s\n" % item)
 
-print('There are {} unique categories in both Al Khobar and Dammam overall.'.format(len(unique_venue_categories)))
+	#st.write('There are {} unique categories in Al-Khobar.'.format(len(khobar_unique_cat)))
 
-unique_venue_categories
+	#khobar_unique_cat
 
+
+	# In[21]:
+
+
+	dammam_unique_cat = dammam_venues['Venue Category'].unique()
+
+	with open('cached_data/dammam_unique_cat.txt', 'w') as f:
+	    for item in dammam_unique_cat:
+        	f.write("%s\n" % item)
+
+
+	#st.write('There are {} unique categories in Al-dammam.'.format(len(dammam_unique_cat)))
+	
+	#dammam_unique_cat
+
+
+	# In[22]:
+
+
+	unique_venue_categories = khobar_unique_cat.tolist() + dammam_unique_cat.tolist()
+
+	unique_venue_categories = np.unique(unique_venue_categories)
+
+	#print('There are {} unique categories in both Al Khobar and Dammam overall.'.format(len(unique_venue_categories)))
+
+	#unique_venue_categories
+
+else:
+
+	with open('cached_data/khobar_unique_cat.txt', 'r') as f:
+		khobar_unique_cat = [line.rstrip() for line in f]
+	
+	with open('cached_data/dammam_unique_cat.txt', 'r') as f:
+		dammam_unique_cat = [line.rstrip() for line in f]
+
+	khobar_venues = pd.read_csv("cached_data/khobar_venues.csv")
+	dammam_venues = pd.read_csv("cached_data/dammam_venues.csv")
+
+
+#Enter search criteria
+CITY = st.sidebar.selectbox("Which city would you like to open your business in?", ["Khobar","Dammam"])
+
+
+#Choose between Khobar and Dammam
+if CITY == "Khobar":
+
+    DISTRICT =  st.sidebar.selectbox("Select your district:", khobar_xy["name_en"])
+    VENUE_CATEGORY = st.sidebar.selectbox("Select your business category:", khobar_unique_cat)
+
+if CITY == "Dammam":
+
+    DISTRICT = st.sidebar.selectbox("Select your district:", dammam_xy["name_en"])
+    VENUE_CATEGORY = st.sidebar.selectbox("Select your business category:", dammam_unique_cat)
 
 # ### Onehot encoding
 # 
@@ -459,7 +507,7 @@ dammam_onehot = dammam_onehot[ ['District'] + [ col for col in dammam_onehot.col
 
 
 
-khobar_onehot.head()
+#khobar_onehot.head()
 
 
 # In[24]:
@@ -468,7 +516,7 @@ khobar_onehot.head()
 khobar_grouped = khobar_onehot.groupby('District').mean().reset_index()
 dammam_grouped = dammam_onehot.groupby('District').mean().reset_index()
 
-khobar_grouped
+#khobar_grouped
 
 
 # ### Getting most common venues in each district
@@ -514,7 +562,7 @@ khobar_venues_sorted['District'] = khobar_grouped['District']
 for ind in np.arange(khobar_grouped.shape[0]):
     khobar_venues_sorted.iloc[ind, 1:] = return_most_common_venues(khobar_grouped.iloc[ind, :], num_top_venues)
 
-khobar_venues_sorted
+#khobar_venues_sorted
 
 
 # ### Top Venues in Dammam's Districts
@@ -529,7 +577,7 @@ dammam_venues_sorted['District'] = dammam_grouped['District']
 for ind in np.arange(dammam_grouped.shape[0]):
     dammam_venues_sorted.iloc[ind, 1:] = return_most_common_venues(dammam_grouped.iloc[ind, :], num_top_venues)
 
-dammam_venues_sorted
+#dammam_venues_sorted
 
 
 # ## K-means Clustering
@@ -559,7 +607,7 @@ khobar_grouped_clustering = khobar_grouped.drop('District', 1)
 kmeans = KMeans(n_clusters=kclusters, random_state=0).fit(khobar_grouped_clustering)
 
 # check cluster labels generated for each row in the dataframe
-kmeans.labels_
+#kmeans.labels_
 
 # add clustering labels
 khobar_venues_sorted.insert(0, 'Cluster Label', kmeans.labels_)
@@ -571,7 +619,7 @@ khobar_merged = khobar_merged.join(khobar_venues_sorted.set_index('District'), o
 
 khobar_merged.dropna(axis=0, inplace = True)
 
-khobar_merged.head() # check the last columns!
+#khobar_merged.head() # check the last columns!
 
 
 # ### Dammam Clusters
@@ -588,7 +636,7 @@ dammam_grouped_clustering = dammam_grouped.drop('District', 1)
 kmeans = KMeans(n_clusters=kclusters, random_state=0).fit(dammam_grouped_clustering)
 
 # check cluster labels generated for each row in the dataframe
-kmeans.labels_
+#kmeans.labels_
 
 # add clustering labels
 dammam_venues_sorted.insert(0, 'Cluster Label', kmeans.labels_)
@@ -600,7 +648,7 @@ dammam_merged = dammam_merged.join(dammam_venues_sorted.set_index('District'), o
 
 dammam_merged.dropna(axis=0, inplace = True)
 
-dammam_merged.head() # check the last columns!
+#dammam_merged.head() # check the last columns!
 
 
 # In[32]:
@@ -613,7 +661,7 @@ khobar_merged["Longitude"] = [ x[1] for x in khobar_merged["center"].tolist() ]
 dammam_merged["Latitude"] = [ x[0] for x in dammam_merged["center"].tolist() ]
 dammam_merged["Longitude"] = [ x[1] for x in dammam_merged["center"].tolist() ]
 
-khobar_merged
+#khobar_merged
 
 
 # ### Plotting Clusters and listing the districts in each cluster
@@ -657,8 +705,10 @@ title_html = '''
              '''.format(loc)   
 
 map_clusters.get_root().html.add_child(folium.Element(title_html))    
-    
-map_clusters
+
+#"Khobar Clusters"
+
+#folium_static(map_clusters)
 
 
 # In[34]:
@@ -666,7 +716,7 @@ map_clusters
 
 # Cluster 0:
 
-khobar_merged.loc[khobar_merged['Cluster Label'] == 0, khobar_merged.columns[[0] + list(range(4, khobar_merged.shape[1]))]]
+#khobar_merged.loc[khobar_merged['Cluster Label'] == 0, khobar_merged.columns[[0] + list(range(4, khobar_merged.shape[1]))]]
 
 
 # In[35]:
@@ -674,7 +724,7 @@ khobar_merged.loc[khobar_merged['Cluster Label'] == 0, khobar_merged.columns[[0]
 
 # Cluster 1
 
-khobar_merged.loc[khobar_merged['Cluster Label'] == 1, khobar_merged.columns[[0] + list(range(4, khobar_merged.shape[1]))]]
+#khobar_merged.loc[khobar_merged['Cluster Label'] == 1, khobar_merged.columns[[0] + list(range(4, khobar_merged.shape[1]))]]
 
 
 # In[36]:
@@ -682,7 +732,7 @@ khobar_merged.loc[khobar_merged['Cluster Label'] == 1, khobar_merged.columns[[0]
 
 # Cluster 2
 
-khobar_merged.loc[khobar_merged['Cluster Label'] == 2, khobar_merged.columns[[0] + list(range(4, khobar_merged.shape[1]))]]
+#khobar_merged.loc[khobar_merged['Cluster Label'] == 2, khobar_merged.columns[[0] + list(range(4, khobar_merged.shape[1]))]]
 
 
 # In[37]:
@@ -690,7 +740,7 @@ khobar_merged.loc[khobar_merged['Cluster Label'] == 2, khobar_merged.columns[[0]
 
 # Cluster 3
 
-khobar_merged.loc[khobar_merged['Cluster Label'] == 3, khobar_merged.columns[[0] + list(range(4, khobar_merged.shape[1]))]]
+#khobar_merged.loc[khobar_merged['Cluster Label'] == 3, khobar_merged.columns[[0] + list(range(4, khobar_merged.shape[1]))]]
 
 
 # In[38]:
@@ -698,7 +748,7 @@ khobar_merged.loc[khobar_merged['Cluster Label'] == 3, khobar_merged.columns[[0]
 
 # Cluster 4
 
-khobar_merged.loc[khobar_merged['Cluster Label'] == 4, khobar_merged.columns[[0] + list(range(4, khobar_merged.shape[1]))]]
+#khobar_merged.loc[khobar_merged['Cluster Label'] == 4, khobar_merged.columns[[0] + list(range(4, khobar_merged.shape[1]))]]
 
 
 # ### Dammam
@@ -737,7 +787,9 @@ title_html = '''
 
 map_clusters.get_root().html.add_child(folium.Element(title_html))       
     
-map_clusters
+#"Dammam Clusters"
+
+#folium_static(map_clusters)
 
 
 # In[40]:
@@ -745,7 +797,7 @@ map_clusters
 
 # Cluster 0
 
-dammam_merged.loc[dammam_merged['Cluster Label'] == 0, dammam_merged.columns[[0] + list(range(4, dammam_merged.shape[1]))]]
+#dammam_merged.loc[dammam_merged['Cluster Label'] == 0, dammam_merged.columns[[0] + list(range(4, dammam_merged.shape[1]))]]
 
 
 # In[41]:
@@ -753,7 +805,7 @@ dammam_merged.loc[dammam_merged['Cluster Label'] == 0, dammam_merged.columns[[0]
 
 # Cluster 1
 
-dammam_merged.loc[dammam_merged['Cluster Label'] == 1, dammam_merged.columns[[0] + list(range(4, dammam_merged.shape[1]))]]
+#dammam_merged.loc[dammam_merged['Cluster Label'] == 1, dammam_merged.columns[[0] + list(range(4, dammam_merged.shape[1]))]]
 
 
 # In[42]:
@@ -761,7 +813,7 @@ dammam_merged.loc[dammam_merged['Cluster Label'] == 1, dammam_merged.columns[[0]
 
 # Cluster 2
 
-dammam_merged.loc[dammam_merged['Cluster Label'] == 2, dammam_merged.columns[[0] + list(range(4, dammam_merged.shape[1]))]]
+#dammam_merged.loc[dammam_merged['Cluster Label'] == 2, dammam_merged.columns[[0] + list(range(4, dammam_merged.shape[1]))]]
 
 
 # In[43]:
@@ -769,7 +821,7 @@ dammam_merged.loc[dammam_merged['Cluster Label'] == 2, dammam_merged.columns[[0]
 
 # Cluster 3
 
-dammam_merged.loc[dammam_merged['Cluster Label'] == 3, dammam_merged.columns[[0] + list(range(4, dammam_merged.shape[1]))]]
+#dammam_merged.loc[dammam_merged['Cluster Label'] == 3, dammam_merged.columns[[0] + list(range(4, dammam_merged.shape[1]))]]
 
 
 # In[44]:
@@ -777,7 +829,7 @@ dammam_merged.loc[dammam_merged['Cluster Label'] == 3, dammam_merged.columns[[0]
 
 # Cluster 4
 
-dammam_merged.loc[dammam_merged['Cluster Label'] == 4, dammam_merged.columns[[0] + list(range(4, dammam_merged.shape[1]))]]
+#dammam_merged.loc[dammam_merged['Cluster Label'] == 4, dammam_merged.columns[[0] + list(range(4, dammam_merged.shape[1]))]]
 
 
 # ## Recommending Districts, Locations and Clusters
@@ -864,19 +916,13 @@ def get_district_recommendation(city, venue_category, map):
 
 # In[46]:
 
-
-#Enter search criteria
-CITY = "Dammam"
-VENUE_CATEGORY = "Jewelry Store"
-
-
 #Choose between Khobar and Dammam
 if CITY == "Khobar":
 
     recommendation_map = folium.Map(location = [26.2172,50.1971], zoom_start = 12)
 
 if CITY == "Dammam":
-    
+
     recommendation_map = folium.Map(location = [26.4207,50.0888], zoom_start = 12)
 
 
@@ -889,10 +935,11 @@ title_html = '''
 
 recommendation_map.get_root().html.add_child(folium.Element(title_html))
 
-print(f"We recommend the following districts to open a {VENUE_CATEGORY} in {CITY}:")
+st.write(f"We recommend the following districts to open a {VENUE_CATEGORY} in {CITY}:")
+"TODO - Add District Marker"
 get_district_recommendation(CITY, VENUE_CATEGORY, recommendation_map)
 
-recommendation_map
+folium_static(recommendation_map)
 
 
 # ## Recommending Locations for Businesses
@@ -982,8 +1029,7 @@ def get_location_recommendation(city, district, venue_category, map):
 
 
 #Enter search criteria
-DISTRICT = "Ad Dawasir Dist."
-
+#DISTRICT = "Ad Dawasir Dist."
 
 # Now we can get our recommendation map:
 
@@ -1010,8 +1056,10 @@ title_html = '''
 
 recommendation_map.get_root().html.add_child(folium.Element(title_html))
 
+"Location Recommendation"
+
 #Display map
-recommendation_map
+folium_static(recommendation_map)
 
 
 # ## Recommending Clusters for Businesses
@@ -1059,40 +1107,22 @@ def get_cluster_recommendation(city, venue_category):
             recommended_clusters.append(x)
     
     
-    print("The recommended clusters are:")
+    st.write("The recommended clusters are:")
     rc = 0
     for _ in recommended_clusters:
         if not len(_) == 0:
             rc += 1
             recommended_clusters_list.append(_[0][1])
     if rc == 0:
-        print("\nSorry, could not find a recommended cluster. Please choose another venue category or city.")
+        st.write("\nSorry, could not find a recommended cluster. Please choose another venue category or city.")
     
     ctr = collections.Counter(recommended_clusters_list)
     
     for _ in ctr:
-        print("Cluster: " + str(_) + "   Recommendation Points: " + str(ctr[_]))
+        st.write("Cluster: " + str(_) + "   Recommendation Points: " + str(ctr[_]))
     
 
 
 # In[51]:
 
-
-#Enter search criteria
-CITY = "Dammam"
-VENUE_CATEGORY = "Farm"
-
 get_cluster_recommendation(CITY,VENUE_CATEGORY)
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
