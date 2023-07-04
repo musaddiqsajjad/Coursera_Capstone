@@ -601,7 +601,7 @@ dammam_data = dammam_data.rename(columns={"name_en": "District"})
 # set number of clusters
 kclusters = 5
 
-khobar_grouped_clustering = khobar_grouped.drop('District', 1)
+khobar_grouped_clustering = khobar_grouped.drop('District', axis=1)
 
 # run k-means clustering
 kmeans = KMeans(n_clusters=kclusters, random_state=0).fit(khobar_grouped_clustering)
@@ -630,7 +630,7 @@ khobar_merged.dropna(axis=0, inplace = True)
 # set number of clusters
 kclusters = 5
 
-dammam_grouped_clustering = dammam_grouped.drop('District', 1)
+dammam_grouped_clustering = dammam_grouped.drop('District', axis=1)
 
 # run k-means clustering
 kmeans = KMeans(n_clusters=kclusters, random_state=0).fit(dammam_grouped_clustering)
